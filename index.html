@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Simulator latihan mengenali penipuan digital di Indonesia.">
+<meta name="color-scheme" content="light dark">
+<title>Cek Dulu!</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: light technical field-manual. Sticky top bar, two-column play screen (phone left, decision panel right), cool grey ground, ink + one alarm orange, teal for "aman". */
+:root{
+  --bg:#FFF3E8; --sf:#FFFFFF; --sf2:#FFEADA; --ink:#2A180C; --mute:#7A5640; --line:#F2D3BA;
+  --sig:#D9480F; --sigbg:#FFD5BC; --sigfg:#FFFFFF; --safe:#0B8A6F; --safebg:#D8F2E9; --warn:#8A5A00; --warnbg:#FFF0B3;
+  --btn:#D9480F; --btnfg:#FFFFFF; --bubble:#FFE6D2; --meBubble:#2A180C; --meFg:#FFFFFF;
+  --disp:"Bricolage Grotesque","Plus Jakarta Sans",system-ui,sans-serif;
+  --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1C110A; --sf:#281A12; --sf2:#33211A; --ink:#FFEFE3; --mute:#CDA88F; --line:#4A3226;
+  --sig:#FF8A4C; --sigbg:#4D2713; --sigfg:#1A0E06; --safe:#3ACBA8; --safebg:#12382D; --warn:#F2BE3D; --warnbg:#41330E;
+  --btn:#FF8A4C; --btnfg:#1A0E06; --bubble:#3A261B; --meBubble:#FFEFE3; --meFg:#1A0E06; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1C110A; --sf:#281A12; --sf2:#33211A; --ink:#FFEFE3; --mute:#CDA88F; --line:#4A3226;
+  --sig:#FF8A4C; --sigbg:#4D2713; --sigfg:#1A0E06; --safe:#3ACBA8; --safebg:#12382D; --warn:#F2BE3D; --warnbg:#41330E;
+  --btn:#FF8A4C; --btnfg:#1A0E06; --bubble:#3A261B; --meBubble:#FFEFE3; --meFg:#1A0E06; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);padding-block:0 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--sig);outline-offset:2px;border-radius:8px}
+.wrap{max-width:1120px;margin:0 auto}
+h1,h2,h3{font-family:var(--disp);font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0;text-wrap:balance}
+p{margin:0}
+.mono{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--mute)}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--bg);border-bottom:1px solid var(--line);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.bar-in{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;border:0;background:none;padding:0;text-align:left}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--sig);color:var(--sigfg);display:grid;place-items:center;font:800 19px var(--disp);position:relative}
+.logo i{position:absolute;right:-3px;top:-3px;width:11px;height:11px;border-radius:50%;background:var(--ink);border:2px solid var(--bg)}
+.brand b{font:800 18px var(--disp);letter-spacing:-.02em;display:block;line-height:1}
+.brand small{font:700 9.5px var(--mono);letter-spacing:.1em;color:var(--mute);text-transform:uppercase}
+.nav{display:flex;gap:2px;align-items:center;overflow-x:auto;max-width:100%;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav button{border:0;background:none;padding:8px 11px;border-radius:999px;font-weight:600;font-size:14px;white-space:nowrap;color:var(--mute)}
+.nav button:hover{color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--sig);color:var(--sigfg)}
+.xp{font:700 12px var(--mono);background:var(--ink);color:var(--bg);border-radius:999px;padding:7px 12px;white-space:nowrap}
+@media(max-width:640px){.bar-in{gap:6px}.nav{order:3;width:100%}}
+
+main{padding-top:22px}
+.view{animation:in .25s ease both}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.view{animation:none}*{scroll-behavior:auto!important;transition:none!important}}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--btn);background:var(--btn);color:var(--btnfg);padding:12px 20px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none}
+.btn:hover{filter:brightness(1.12)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink);filter:none}
+.btn.sig{background:var(--sig);border-color:var(--sig);color:var(--sigfg)}
+.btn[disabled]{opacity:.4;cursor:not-allowed;filter:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;padding:8px 0 28px}
+.hero h1{font-size:clamp(38px,6.2vw,72px);margin:12px 0 16px}
+.hero h1 em{font-style:normal;background:linear-gradient(transparent 62%,var(--sigbg) 62%);padding:0 4px;margin:0 -4px}
+.lead{font-size:17px;color:var(--mute);max-width:54ch;margin-bottom:22px}
+@media(max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+
+/* phone / chat */
+.phone{background:var(--sf);border:1px solid var(--line);border-radius:26px;overflow:hidden;box-shadow:0 18px 40px -26px rgba(14,26,37,.5);min-width:0}
+.ph-h{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--sf2)}
+.av{width:34px;height:34px;border-radius:50%;background:var(--sig);color:var(--sigfg);display:grid;place-items:center;font:800 14px var(--disp);flex:none}
+.ph-h b{display:block;font-size:14px;line-height:1.2}
+.ph-h span{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.chat{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:200px}
+.msg{max-width:88%;padding:10px 13px;border-radius:16px;font-size:15px;line-height:1.5;background:var(--bubble);border-bottom-left-radius:5px;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--meBubble);color:var(--meFg);border-radius:16px;border-bottom-right-radius:5px}
+.msg.sys{align-self:center;max-width:100%;background:transparent;font:700 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute);text-align:center}
+.msg.file{display:flex;gap:10px;align-items:center}
+.msg.file .ico{width:34px;height:40px;border-radius:7px;background:var(--sf);border:1.5px solid var(--mute);display:grid;place-items:center;font:700 9px var(--mono);flex:none;color:var(--mute)}
+.msg.esc{background:var(--sigbg);color:var(--ink);border:1px solid var(--sig)}
+.fl{font:inherit;color:inherit;border:0;background:none;padding:0 2px;margin:0 -1px;border-radius:4px;text-align:left;overflow-wrap:anywhere}
+button.fl{cursor:pointer;background:var(--warnbg);box-shadow:inset 0 -2px 0 var(--warn)}
+button.fl:hover{filter:brightness(.95)}
+.fl.found{background:var(--sigbg);box-shadow:inset 0 -2px 0 var(--sig);color:var(--ink)}
+.fl.ok{background:var(--safebg);box-shadow:inset 0 -2px 0 var(--safe);color:var(--ink)}
+.fl.missed{background:transparent;box-shadow:inset 0 -2px 0 var(--mute);text-decoration:none;border-bottom:0}
+.fl.hint{background:transparent;box-shadow:none}
+
+/* cards, panels */
+.card{background:var(--sf);border:1px solid var(--line);border-radius:var(--r,18px);padding:20px;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:6px 0 16px}
+@media(max-width:860px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat b{display:block;font:800 30px/1 var(--disp);letter-spacing:-.02em;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--mute)}
+.bar-t{height:7px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0 6px}
+.bar-t i{display:block;height:100%;background:var(--sig);border-radius:99px}
+.steps4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media(max-width:860px){.steps4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.st .k{width:34px;height:34px;border-radius:10px;background:var(--sig);color:var(--sigfg);display:grid;place-items:center;font:800 16px var(--disp);margin-bottom:10px}
+.st b{display:block;font-size:16px;margin-bottom:2px}
+.st span{font-size:13.5px;color:var(--mute);display:block}
+.note{background:var(--safebg);border-radius:14px;padding:14px 18px;font-size:14px;margin-top:16px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:26px 0 14px}
+.sec-h h2{font-size:clamp(26px,3.6vw,36px)}
+
+/* map */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{border:1.5px solid var(--line);background:var(--sf);padding:7px 14px;border-radius:999px;font-weight:600;font-size:13.5px}
+.chip[aria-pressed="true"]{background:var(--sig);color:var(--sigfg);border-color:var(--sig)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.tile{text-align:left;background:var(--sf);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.tile:hover{border-color:var(--ink)}
+.tile h3{font-size:19px}
+.tile .meta{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);border-radius:6px;padding:3px 7px;color:var(--mute)}
+.dots{display:flex;gap:3px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--ink)}
+.stars{font-size:15px;letter-spacing:2px;color:var(--line)}.stars b{color:var(--sig);font-weight:400}
+.tile p{font-size:13.5px;color:var(--mute)}
+
+/* play */
+.crumb{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.play{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:20px;align-items:start}
+@media(max-width:860px){.play{grid-template-columns:minmax(0,1fr)}}
+.stepper{display:flex;gap:6px;margin-bottom:16px}
+.stepper span{flex:1;text-align:center;font:700 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:8px 2px;border-radius:9px;background:var(--sf);border:1px solid var(--line);color:var(--mute)}
+.stepper span.on{background:var(--sig);color:var(--sigfg);border-color:var(--sig)}
+.stepper span.done{color:var(--safe);border-color:var(--safe)}
+.panel h2{font-size:26px;margin-bottom:6px}
+.panel .sub{color:var(--mute);margin-bottom:16px}
+.opts{display:grid;gap:10px}
+.opt{text-align:left;background:var(--sf2);border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;font-weight:600;line-height:1.4}
+.opt:hover{border-color:var(--ink)}
+.emo{display:flex;flex-wrap:wrap;gap:8px}
+.emo .opt{padding:10px 16px;border-radius:999px;font-size:14.5px}
+.found-list{display:grid;gap:8px;margin:14px 0}
+.fnd{border-left:4px solid var(--sig);background:var(--sf2);border-radius:0 12px 12px 0;padding:10px 14px;font-size:14px}
+.fnd.ok{border-color:var(--safe)}
+.fnd.miss{border-color:var(--mute)}
+.fnd b{display:block;font-size:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+input[type=range]{width:100%;accent-color:var(--sig);height:28px}
+.conf-big{font:800 52px/1 var(--disp);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.conf-lab{color:var(--mute);font-weight:600;margin:4px 0 10px;min-height:24px}
+.scale{display:flex;justify-content:space-between;font:700 10px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+.verdict{border-radius:14px;padding:14px 16px;margin:14px 0;font-weight:600}
+.verdict.best{background:var(--safebg)}.verdict.ok{background:var(--warnbg)}
+.verdict.risky{background:var(--warnbg)}.verdict.bad{background:var(--sigbg)}
+.rows{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:14px 0}
+.rows div{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.rows div:last-child{border:0;background:var(--sf2);font-weight:800}
+.rows b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.official{background:var(--sf2);border-radius:14px;padding:14px 16px;font-size:14px;margin:14px 0}
+.bigstars{font-size:30px;letter-spacing:4px;color:var(--line)}.bigstars b{color:var(--sig);font-weight:400}
+.unlock{border:2px dashed var(--sig);border-radius:16px;padding:16px;margin:14px 0;background:var(--sf)}
+.unlock h3{font-size:22px;margin:4px 0 6px}
+
+/* cards view */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.kc{background:var(--sig);color:var(--sigfg);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;min-height:190px;min-width:0}
+.kc h3{font-size:22px}
+.kc p{font-size:14px;opacity:.88}
+.kc .mono{color:inherit;opacity:.65}
+.kc.lock{background:var(--sf);color:var(--mute);border:1.5px dashed var(--line)}
+.kc.lock h3{color:var(--mute)}
+
+/* checker */
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:860px){.two{grid-template-columns:minmax(0,1fr)}}
+textarea{width:100%;min-height:190px;border:1.5px solid var(--line);background:var(--sf);color:var(--ink);border-radius:14px;padding:14px;font:15px/1.55 var(--body);resize:vertical}
+mark{background:var(--sigbg);color:var(--ink);box-shadow:inset 0 -2px 0 var(--sig);border-radius:3px;padding:0 1px}
+.mirror{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--sf);white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;margin-top:12px;max-height:260px;overflow:auto}
+.meter{height:12px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0}
+.meter i{display:block;height:100%;border-radius:99px;transition:width .3s}
+.lvl{font:800 34px/1 var(--disp);letter-spacing:-.02em}
+
+/* kilat */
+.kil{max-width:640px;margin:0 auto}
+.kq{font:700 22px/1.4 var(--body);background:var(--sf2);border-radius:16px;padding:22px;margin:14px 0;overflow-wrap:anywhere}
+.two-b{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two-b .btn{padding:16px}
+
+/* info */
+.list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.list li{background:var(--sf2);border-radius:12px;padding:12px 14px;font-size:14.5px}
+.list b{display:block}
+.copyfield{font:500 13px/1.6 var(--mono);background:var(--sf2);border-radius:12px;padding:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;z-index:80}
+footer{margin-top:34px;color:var(--mute);font-size:13px}
+.foot{border-top:1px solid var(--line);padding-top:16px;text-align:center;font:700 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+</style>
+
+</head>
+<body>
+<div class="bar"><div class="bar-in">
+  <button class="brand" data-r="home" aria-label="Beranda Cek Dulu"><span class="logo">C<i></i></span><span><b>Cek Dulu!</b><small>Lab latihan anti-penipuan</small></span></button>
+  <nav class="nav" id="nav" aria-label="Menu utama"></nav>
+  <span class="xp" id="xpPill">0 XP</span>
+</div></div>
+<main class="wrap" id="app"></main>
+<footer class="wrap"><div class="foot">© D.E.A. 2026 · Cek Dulu! Lab latihan anti-penipuan</div></footer>
+<div id="toast"></div>
+
+<script>
+/* ---------- DATA ---------- */
+var CASES=[
+{id:"paket",ch:"SMS",d:1,title:"Paket tertahan di gudang",from:"0851-0000-0142",truth:"scam",emo:"Panik",
+ emoWhy:"Takut paket hilang mendorong kamu bertindak cepat. Biaya kecil dan tenggat jam-jaman menjaga kamu tetap panik.",
+ msgs:[{w:"them",t:"Yth. [[Pelanggan|gen]], paket Anda tertahan di gudang PosCepat."},{w:"them",t:"[[Biaya kirim ulang Rp3.500 belum dibayar|fee]]. Selesaikan [[dalam 3 jam|urg]] atau paket dikembalikan: [[poscepat-redelivery.example/bayar|link]]"}],
+ flags:[{id:"gen",l:"Sapaan generik",y:"Pesan kurir asli biasanya menyebut nama, nomor resi, atau barang yang kamu pesan."},{id:"fee",l:"Biaya kecil",y:"Nominal kecil membuat kamu lengah lalu memasukkan data kartu atau OTP di halaman palsu."},{id:"urg",l:"Tenggat jam-jaman",y:"Waktu sempit memancing refleks. Kurir asli tidak mengembalikan paket dalam tiga jam."},{id:"link",l:"Tautan bukan milik kurir",y:"Domain buatan yang meniru nama kurir. Kamu tidak bisa menilainya dari tampilan halaman."}],
+ opts:[{t:"Klik tautannya, Rp3.500 kecil saja",v:"bad",r:"Halaman meminta nomor kartu dan kode OTP. Biaya Rp3.500 hanya umpan, saldo bisa terkuras dalam hitungan menit."},
+       {t:"Buka aplikasi toko atau kurir sendiri dan cek status pesanan",v:"best",r:"Tepat. Kalau memang ada masalah, status itu muncul di aplikasi resmi tanpa perlu klik tautan dari pesan."},
+       {t:"Balas “STOP” ke nomor itu",v:"risky",r:"Balasan membuktikan nomormu aktif, jadi pesan serupa justru makin sering datang."},
+       {t:"Hapus pesan dan blokir nomornya",v:"ok",r:"Aman. Tambahan terbaik: cek dulu pesananmu di aplikasi resmi supaya tahu apakah ada paket yang benar-benar ditunggu."}],
+ lesson:"Biaya kecil dan batas waktu pendek adalah paket umpan standar. Selalu cek lewat aplikasi yang kamu buka sendiri.",
+ official:"Cek resi di aplikasi kurir atau toko tempat kamu belanja. Laporkan nomor ke aduannomor.id.",
+ card:{t:"Buka sendiri, jangan klik",r:"Tautan dari pesan tidak untuk dipercaya. Buka aplikasi atau situs resmi lewat jalurmu sendiri."}},
+
+{id:"apk",ch:"WhatsApp",d:1,title:"Undangan pernikahan berformat APK",from:"+62 812-4410-9031",truth:"scam",emo:"Penasaran",
+ emoWhy:"Undangan dari orang yang terasa familier memancing rasa ingin tahu dan sungkan untuk tidak membuka.",
+ msgs:[{w:"them",t:"[[Assalamualaikum|salam]] Bapak/Ibu, kami mengundang Anda ke pernikahan kami. Silakan unduh undangan digitalnya."},{w:"them",f:1,t:"[[Undangan_Pernikahan_Rani.apk|apk]]"},{w:"them",t:"[[Mohon dibuka hari ini ya, acaranya besok|urg]]"}],
+ flags:[{id:"apk",l:"File .apk",y:"Undangan asli berupa gambar, PDF, atau tautan web. File APK memasang program yang bisa membaca SMS dan OTP di ponselmu."},{id:"urg",l:"Didesak buka hari ini",y:"Penjahat butuh kamu bertindak sebelum sempat bertanya ke orang lain."},{id:"salam",l:"Salam sopan",ok:1,y:"Salam yang sopan wajar dan tidak membuktikan apa-apa. Penipu memang sengaja santun."}],
+ opts:[{t:"Pasang aplikasinya, siapa tahu itu undangan teman",v:"bad",r:"Aplikasi minta izin membaca SMS dan notifikasi. Setelahnya, OTP m-banking langsung terbaca penjahat."},
+       {t:"Jangan buka file itu. Blokir dan laporkan nomornya",v:"best",r:"Tepat. Tanpa membuka lampiran, pesan itu tidak bisa berbuat apa-apa."},
+       {t:"Balas dan tanya siapa pengirimnya",v:"ok",r:"Bertanya tidak berbahaya, tetapi jawabannya tidak bisa kamu percaya. Tetap jangan unduh file apa pun."},
+       {t:"Teruskan filenya ke grup keluarga supaya dicek bersama",v:"risky",r:"Meneruskan file justru menyebarkan bahaya. Kalau mau memperingatkan, kirim teks saja."}],
+ lesson:"Aplikasi tidak pernah menjadi undangan. Satu file APK dari pesan bisa menyerahkan seluruh SMS dan OTP-mu.",
+ official:"Hapus file jika sudah terunduh. Jika terlanjur dipasang, copot aplikasinya, hubungi bank, dan ganti semua kata sandi.",
+ card:{t:"APK bukan undangan",r:"Jangan pasang aplikasi yang dikirim lewat chat. Undangan sah berupa gambar atau tautan web."}},
+
+{id:"mama",ch:"WhatsApp",d:1,title:"Mama ganti nomor, minta transfer",from:"Mama (nomor baru)",truth:"scam",emo:"Iba",
+ emoWhy:"Kasih sayang dan rasa ingin membantu keluarga membuat orang langsung bergerak tanpa memeriksa.",
+ msgs:[{w:"them",t:"Halo nak, ini [[nomor baru Mama|nomor]], hp Mama rusak."},{w:"them",t:"Nak, Mama lagi di toko. [[Tolong transfer dulu Rp2.750.000|uang]] ke rekening ini buat bayar barang. [[Jangan bilang Papa dulu ya|rahasia]]"},{w:"them",t:"[[Cepat ya, Mama ditunggu kasir.|urg]]"}],
+ flags:[{id:"nomor",l:"Tiba-tiba nomor baru",y:"Foto profil dan gaya bicara mudah ditiru. Ganti nomor adalah alasan klasik supaya kamu tidak mengecek."},{id:"uang",l:"Minta uang ke rekening asing",y:"Rekening atas nama orang lain atau nama yang tidak kamu kenal adalah tanda kuat."},{id:"rahasia",l:"Minta dirahasiakan",y:"Larangan memberi tahu orang lain bertujuan menutup jalur verifikasi."},{id:"urg",l:"Ditunggu kasir",y:"Tekanan waktu mencegah kamu menelepon."}],
+ opts:[{t:"Transfer dulu, nanti ditanya lagi",v:"bad",r:"Dana langsung berpindah ke rekening penjahat. Biasanya muncul permintaan kedua: “barangnya kurang, tambah Rp1,5 juta.”",esc:"Makasih nak. Ternyata masih kurang, tambah Rp1.500.000 ya."},
+       {t:"Telepon Mama di nomor lamanya atau tanya Papa dan kakak",v:"best",r:"Tepat. Jalur kedua yang sudah kamu kenal memutus skenario dalam hitungan detik."},
+       {t:"Minta selfie Mama sambil memegang kertas bertuliskan nama",v:"risky",r:"Foto bisa dicuri atau dibuat AI. Menelepon nomor lama jauh lebih kuat."},
+       {t:"Tanya hal yang hanya Mama tahu, misalnya nama kucing pertama",v:"ok",r:"Cukup membantu, tapi penjahat bisa mencari jawabannya di media sosial. Tetap lanjutkan dengan telepon ke nomor lama."}],
+ lesson:"Untuk permintaan uang dari keluarga, verifikasi di kanal kedua yang sudah kamu kenal sebelum satu rupiah pun pindah.",
+ official:"Telepon nomor lama, kabari anggota keluarga lain, dan laporkan nomor baru itu lewat fitur lapor di WhatsApp.",
+ card:{t:"Verifikasi di jalur kedua",r:"Permintaan uang dari orang dekat wajib dikonfirmasi lewat telepon atau orang lain yang sudah kamu kenal."}},
+
+{id:"bankcall",ch:"Telepon",d:2,title:"“Petugas bank” minta kode di telepon",from:"021-5550-0199",truth:"scam",emo:"Takut",
+ emoWhy:"Kabar uangmu dalam bahaya memicu takut kehilangan, dan rasa takut membuat orang mengikuti arahan siapa pun yang tampak berwenang.",
+ msgs:[{w:"sys",t:"Transkrip panggilan masuk"},{w:"them",t:"Selamat siang, saya Dimas dari layanan pelanggan Bank Contoh. Ada [[transaksi mencurigakan Rp8.900.000|take]] dari rekening Anda."},{w:"them",t:"Untuk membatalkan, saya kirim kode ke SMS Anda. [[Mohon sebutkan 6 digitnya|otp]]."},{w:"them",t:"[[Kalau tidak segera, rekening kami blokir permanen.|urg]]"}],
+ flags:[{id:"take",l:"Penelepon yang menakut-nakuti",y:"Penelepon yang memulai percakapan lalu mengabarkan bahaya adalah pola khas penipuan."},{id:"otp",l:"Meminta kode",y:"OTP tidak pernah diminta bank. Siapa pun yang memintanya sedang memakai akunmu."},{id:"urg",l:"Ancaman blokir",y:"Bank tidak memblokir permanen hanya karena kamu tidak menyebut kode."}],
+ opts:[{t:"Sebutkan 6 digit supaya transaksinya batal",v:"bad",r:"Kode yang kamu sebut justru dipakai untuk memindahkan dana atau mengaktifkan m-banking di ponsel penjahat."},
+       {t:"Tutup telepon, hubungi nomor resmi di belakang kartu atau aplikasi",v:"best",r:"Tepat. Kamu yang memulai panggilan ke nomor yang terverifikasi, bukan sebaliknya."},
+       {t:"Minta nama lengkap dan nomor pegawai penelepon",v:"risky",r:"Identitas semacam itu bisa dikarang. Yang menentukan adalah jalur penghubungnya."},
+       {t:"Ikuti arahan memindahkan dana ke “rekening aman”",v:"bad",r:"Tidak ada rekening aman. Dana yang kamu pindahkan hilang.",esc:"Baik. Kami tunggu transfer ke rekening penyelamat atas nama PT Aman Sentosa."}],
+ lesson:"Bank tidak pernah minta OTP, PIN, atau kata sandi, bahkan ketika mereka yang menelepon.",
+ official:"Telepon nomor call center di belakang kartu atau di aplikasi. Minta blokir kartu bila perlu.",
+ card:{t:"OTP adalah kunci rumahmu",r:"Kode verifikasi tidak pernah dibagikan ke siapa pun, termasuk yang mengaku petugas bank."}},
+
+{id:"notifbank",ch:"SMS",d:1,title:"Notifikasi bank yang sah",from:"Bank Contoh",truth:"legit",emo:"Tenang",
+ emoWhy:"Pesan ini hanya memberi kabar. Tidak ada tenggat, ancaman, atau permintaan, jadi tidak ada emosi yang dimainkan.",
+ ctx:"Kamu memang baru saja mengirim Rp350.000 ke Aulia lewat aplikasi bank.",
+ msgs:[{w:"them",t:"Bank Contoh: [[Transfer keluar Rp350.000 ke Aulia R. pada 22/10 berhasil|trx]]."},{w:"them",t:"[[Jika bukan Anda, hubungi nomor di belakang kartu.|call]] [[Jangan berikan OTP, PIN, atau kata sandi kepada siapa pun.|warn]]"}],
+ flags:[{id:"trx",l:"Rincian transaksi",ok:1,y:"Ini pemberitahuan setelah kamu sendiri melakukan transfer. Isinya cocok dengan riwayat di aplikasi."},{id:"call",l:"Arahan menghubungi bank",ok:1,y:"Pesan menyuruhmu memakai nomor di kartu milikmu, bukan nomor atau tautan dari pesan."},{id:"warn",l:"Peringatan jangan bagi OTP",ok:1,y:"Pesan resmi justru mengingatkan agar kamu tidak membagikan kode."}],
+ opts:[{t:"Cocokkan dengan riwayat di aplikasi bank yang kubuka sendiri",v:"best",r:"Tepat. Memeriksa lewat aplikasimu sendiri cukup dan tidak mengandung risiko."},
+       {t:"Abaikan saja, toh aku yang transfer",v:"ok",r:"Wajar untuk transaksi yang memang kamu lakukan. Jika nominal tidak cocok, barulah periksa dan hubungi bank."},
+       {t:"Balas SMS dengan nomor rekening supaya “diverifikasi”",v:"bad",r:"Pesan sah tidak membutuhkan balasan data. Jangan kirim apa pun ke pengirim SMS.",esc:"Terima kasih. Mohon kirim juga PIN kartu Anda untuk validasi."}],
+ lesson:"Tidak semua pesan itu jahat. Yang sah memberi kabar, tidak meminta data, dan tidak mengirim tautan. Curiga berlebihan juga melelahkan.",
+ official:"Bandingkan dengan mutasi di aplikasi bank. Jika tidak cocok, hubungi call center di kartu.",
+ card:{t:"Tak semua pesan jahat",r:"Pesan sah bersifat memberi kabar. Tidak ada tenggat, ancaman, tautan, atau permintaan data."}},
+
+{id:"invest",ch:"WhatsApp",d:2,title:"Grup “cuan harian” dengan bukti WD",from:"Cuan Bareng Pak Hendra (214 anggota)",truth:"scam",emo:"Tergiur",
+ emoWhy:"Bukti penarikan, suasana ramai, dan slot terbatas memantik rasa takut ketinggalan.",
+ msgs:[{w:"them",t:"Bu Siska baru WD Rp12 juta dari modal Rp2 juta, [[untung 5% per hari|roi]]. Bukti ada di atas."},{w:"them",t:"Member baru dapat [[bonus 100% khusus hari ini|urg]], [[kuota tinggal 4 slot|slot]]."},{w:"them",t:"[[Admin resmi, dijamin aman tanpa risiko|jamin]]. Daftar lewat cuanbareng.example"}],
+ flags:[{id:"roi",l:"Untung pasti per hari",y:"Imbal hasil pasti dan sebesar itu tidak ada pada investasi yang sah. Itu skema Ponzi."},{id:"urg",l:"Bonus hari ini saja",y:"Promo mendadak mengejar keputusan sebelum kamu sempat mengecek."},{id:"slot",l:"Kuota terbatas",y:"Kelangkaan buatan memanfaatkan rasa takut ketinggalan."},{id:"jamin",l:"Tanpa risiko",y:"Investasi selalu punya risiko. Janji aman total berarti penipuan atau kebohongan."}],
+ opts:[{t:"Coba dulu modal Rp100 ribu saja",v:"risky",r:"Nominal kecil sengaja dibiarkan cair untuk membangun kepercayaan, lalu kamu diajak menambah dana besar."},
+       {t:"Keluar grup, cek izin di OJK, laporkan bila perlu",v:"best",r:"Tepat. Izin usaha dan daftar entitas bisa dicek di kanal resmi OJK, dan janji untung pasti sudah cukup sebagai alasan menolak."},
+       {t:"Minta bukti WD lewat video call",v:"risky",r:"Bukti bisa direkayasa. Fokusnya adalah izin dan janji untung pasti, bukan tampilan bukti."},
+       {t:"Ajak teman-teman supaya dapat komisi referral",v:"bad",r:"Kamu ikut merekrut korban dan bisa ikut dimintai tanggung jawab."}],
+ lesson:"Untung pasti tanpa risiko bukan fakta, melainkan bahan jualan. Cek izin dulu, ikut kemudian (atau tidak sama sekali).",
+ official:"Telepon OJK 157 atau cek izin entitas di situs OJK. Laporkan lewat Indonesia Anti-Scam Centre.",
+ card:{t:"Terlalu bagus untuk jadi nyata",r:"Untung besar yang pasti dan tanpa risiko adalah tanda skema investasi bodong."}},
+
+{id:"kerja",ch:"Telegram",d:2,title:"Kerja paruh waktu, tugas like dan review",from:"HRD Mitra Digital",truth:"scam",emo:"Tergiur",
+ emoWhy:"Penghasilan harian yang tampak mudah menggoda siapa pun yang sedang butuh tambahan uang.",
+ msgs:[{w:"them",t:"Halo, kami buka lowongan paruh waktu: like dan review produk. [[Rp300 ribu sampai Rp1,5 juta per hari|gaji]]."},{w:"them",t:"Tugas pertama gratis. Tugas berikutnya [[perlu deposit Rp500.000, dikembalikan beserta komisi|dep]]."},{w:"them",t:"[[Tanpa CV atau wawancara, lanjut lewat Telegram saja|tg]]"}],
+ flags:[{id:"gaji",l:"Gaji besar untuk pekerjaan ringan",y:"Upah tidak sebanding dengan pekerjaannya. Pekerjaan nyata tidak membayar demikian."},{id:"dep",l:"Deposit lebih dulu",y:"Pemberi kerja sah tidak meminta uang muka dari pekerja."},{id:"tg",l:"Tanpa seleksi, pindah kanal",y:"Tidak ada wawancara dan diajak ke aplikasi yang sulit dilacak."}],
+ opts:[{t:"Ikut deposit Rp500 ribu, kecil kok",v:"bad",r:"Saldo tampak bertambah di dasbor palsu, lalu kamu diminta deposit lebih besar untuk bisa menarik.",esc:"Selamat, saldo Anda Rp1,2 juta. Untuk menarik, naik ke paket VIP Rp3.000.000."},
+       {t:"Cek perusahaannya di situs resmi, tolak deposit, laporkan",v:"best",r:"Tepat. Tanpa deposit dan tanpa data resmi perusahaan, tawaran itu gugur."},
+       {t:"Ikuti tugas gratis dulu, nanti deposit tidak kuambil",v:"risky",r:"Tugas pertama dirancang untuk membangun kepercayaan. Komisi kecil dibayar supaya kamu mau menyetor lebih besar."},
+       {t:"Minta wawancara video dulu",v:"ok",r:"Tidak ada salahnya, tapi permintaan deposit tetap alasan cukup untuk berhenti."}],
+ lesson:"Pekerjaan yang meminta kamu membayar sebelum dibayar bukan pekerjaan.",
+ official:"Laporkan akun ke Telegram dan ke aduannomor.id. Jika sudah transfer, hubungi bank dan lapor polisi.",
+ card:{t:"Uang di muka berarti alarm",r:"Biaya admin, deposit, pajak hadiah, atau asuransi sebelum menerima apa pun adalah tanda penipuan."}},
+
+{id:"pinjam",ch:"SMS",d:2,title:"Pinjaman cair asal bayar asuransi",from:"PinjamKilat",truth:"scam",emo:"Tergiur",
+ emoWhy:"Saat uang sedang sempit, “disetujui tanpa syarat” terasa seperti jalan keluar.",
+ msgs:[{w:"them",t:"Pinjaman Rp15.000.000 [[tanpa slip gaji, tanpa BI Checking|mudah]] sudah disetujui."},{w:"them",t:"[[Bayar asuransi pencairan Rp450.000 dulu|fee]] ke rekening 7012-xxxx a.n. [[perorangan|pri]]. [[Dana cair 10 menit.|urg]]"}],
+ flags:[{id:"mudah",l:"Disetujui tanpa verifikasi",y:"Pemberi pinjaman sah selalu menilai kemampuan bayar. Persetujuan tanpa pemeriksaan itu umpan."},{id:"fee",l:"Biaya awal",y:"Pinjaman sah memotong biaya dari pencairan. Ia tidak meminta kamu menyetor dulu."},{id:"pri",l:"Rekening pribadi",y:"Perusahaan tidak menerima biaya ke rekening atas nama perorangan."},{id:"urg",l:"Janji cair cepat",y:"Kecepatan dijanjikan supaya kamu tidak berpikir."}],
+ opts:[{t:"Bayar Rp450 ribu, toh kalau cair untung",v:"bad",r:"Setelah bayar, muncul “biaya pajak” baru. Pinjaman tidak pernah cair.",esc:"Dana tertahan. Mohon bayar pajak pencairan Rp900.000."},
+       {t:"Cek izin penyelenggara di OJK dan jangan bayar biaya awal",v:"best",r:"Tepat. Penyelenggara berizin ada di daftar resmi OJK dan tidak meminta setoran lebih dulu."},
+       {t:"Minta kontrak tertulis dulu",v:"risky",r:"Kontrak palsu mudah dibuat. Yang menentukan adalah biaya di muka dan rekening pribadi."},
+       {t:"Hapus pesan dan blokir nomornya",v:"ok",r:"Aman. Jika memang butuh dana, cari penyelenggara yang terdaftar di OJK."}],
+ lesson:"Pinjaman yang meminta biaya sebelum cair adalah pencuri biaya. Penyelenggara sah memotong dari pencairan.",
+ official:"Cek daftar penyelenggara berizin di situs OJK, atau telepon 157.",
+ card:{t:"Cek legalitasnya dulu",r:"Cocokkan izin penyelenggara dengan daftar resmi OJK sebelum mengajukan apa pun."}},
+
+{id:"hadiah",ch:"WhatsApp",d:1,title:"Menang undian yang tidak pernah kuikuti",from:"+62 877-0000-5521",truth:"scam",emo:"Tergiur",
+ emoWhy:"Hadiah besar yang tiba-tiba membuat otak mengabaikan pertanyaan paling mendasar: kapan aku mendaftar?",
+ msgs:[{w:"them",t:"Selamat! Nomor Anda menang [[Undian Nasional: 1 unit motor dan Rp25 juta|prize]]."},{w:"them",t:"Untuk klaim, [[bayar pajak hadiah Rp1.200.000|fee]] dan kirim [[foto KTP dan selfie memegang KTP|ktp]]. Berlaku [[sampai pukul 17.00|urg]]."}],
+ flags:[{id:"prize",l:"Hadiah untuk undian yang tak diikuti",y:"Kamu tidak pernah mendaftar. Itu satu-satunya fakta yang perlu dicek."},{id:"fee",l:"Pajak hadiah dibayar duluan",y:"Pajak hadiah sah dipotong dari hadiah, tidak disetor pemenang lewat rekening pribadi."},{id:"ktp",l:"KTP dan selfie",y:"Data itu dipakai membuat akun palsu atau pinjol atas namamu."},{id:"urg",l:"Berlaku sampai jam 17.00",y:"Tenggat singkat mencegah kamu bertanya."}],
+ opts:[{t:"Kirim KTP dulu, biayanya nanti menyusul",v:"bad",r:"KTP dan selfie dipakai mendaftar pinjol atas namamu. Kamu bisa ditagih utang yang tidak pernah kamu ambil."},
+       {t:"Aku tidak pernah ikut undian. Blokir dan laporkan",v:"best",r:"Tepat. Hadiah tanpa pendaftaran sudah cukup alasan untuk berhenti."},
+       {t:"Bayar pajaknya, karena pajak hadiah memang ada",v:"bad",r:"Pajak itu nyata, tapi tidak dibayar ke rekening pribadi penyelenggara. Uang hilang tanpa hadiah.",esc:"Terima kasih. Hadiah diproses. Mohon bayar biaya pengiriman Rp2.500.000."},
+       {t:"Tanya nama panitia dan izin undiannya",v:"risky",r:"Dokumen izin palsu mudah dibuat. Pertanyaan yang benar: kapan aku mendaftar?"}],
+ lesson:"Hadiah yang tak pernah kamu perjuangkan hampir selalu jebakan. Pajak dan biaya tak pernah disetor lebih dulu.",
+ official:"Laporkan nomor ke aduannomor.id dan blokir. Jangan kirim data identitas apa pun.",
+ card:{t:"Hadiah tanpa pendaftaran",r:"Kalau kamu tidak pernah ikut, kamu tidak mungkin menang. Jangan membayar apa pun untuk mengambilnya."}},
+
+{id:"jual",ch:"Marketplace",d:2,title:"Pembeli ajak bayar di luar aplikasi",from:"Pembeli: dewi_store88",truth:"scam",emo:"Sungkan",
+ emoWhy:"Sebagai penjual, kamu tak ingin kehilangan pembeli. Sungkan dan butuh laku membuat kamu menuruti permintaan.",
+ msgs:[{w:"them",t:"[[Barangnya ready kak?|stok]] Saya ambil. Tapi [[bayar di luar aplikasi lewat transfer langsung biar tidak kena potongan|off]]."},{w:"them",t:"Sudah saya bayar, ini [[bukti transfer|proof]]. Mohon [[klik link konfirmasi biar dana masuk|link]]: marketplace-dana.example/terima"}],
+ flags:[{id:"stok",l:"Tanya stok",ok:1,y:"Pertanyaan stok itu wajar dan umum dari pembeli asli."},{id:"off",l:"Pindah ke luar platform",y:"Di luar aplikasi, tidak ada perlindungan penjual dan tidak ada riwayat transaksi."},{id:"proof",l:"Bukti transfer berupa gambar",y:"Gambar mudah dipalsukan. Satu-satunya bukti adalah saldo yang kamu lihat sendiri."},{id:"link",l:"Link konfirmasi",y:"Halaman palsu itu meniru login platform untuk mencuri akunmu."}],
+ opts:[{t:"Klik link konfirmasinya",v:"bad",r:"Halaman palsu mencuri kata sandi dan kode verifikasi. Saldo dan akun tokomu bisa diambil alih."},
+       {t:"Tolak bayar luar aplikasi, minta checkout lewat platform",v:"best",r:"Tepat. Dana ditahan platform dan baru cair saat pesanan selesai."},
+       {t:"Cek mutasi bank sendiri, kirim barang bila dana masuk",v:"ok",r:"Aman dari bukti palsu, tapi bayaran di luar platform membuatmu tak terlindungi bila ada sengketa."},
+       {t:"Kirim barang dulu karena bukti transfer sudah ada",v:"bad",r:"Bukti transfer hanya gambar. Barang terkirim, uang tidak pernah masuk."}],
+ lesson:"Di marketplace, bukti bayar hanya yang kamu lihat di aplikasi atau mutasimu sendiri. Dan tetaplah di dalam platform.",
+ official:"Laporkan pembeli lewat fitur lapor di aplikasi marketplace. Jangan klik tautan konfirmasi.",
+ card:{t:"Tetap di dalam platform",r:"Transaksi di luar aplikasi marketplace tidak dilindungi. Bukti bayar sah hanya dari aplikasi atau mutasimu."}},
+
+{id:"romansa",ch:"Medsos",d:3,title:"Kenalan di DM, lalu bea cukai",from:"dr.michael.hart",truth:"scam",emo:"Iba",
+ emoWhy:"Kedekatan yang dibangun berminggu-minggu membuat kamu ingin menolong, bukan mengecek.",
+ msgs:[{w:"them",t:"Hai, kamu berbeda dari yang lain. Aku [[dokter militer misi PBB di Suriah|persona]]."},{w:"them",t:"Tiga minggu ngobrol, aku mulai sayang kamu. Aku mau pensiun dan pulang ke Indonesia."},{w:"them",t:"Aku kirim [[paket berisi uang dan emas|paket]], tapi [[bea cukai minta Rp9.500.000. Bisa bantu transfer dulu? Nanti kuganti|fee]]."}],
+ flags:[{id:"persona",l:"Profesi jauh dan mulia",y:"Dokter atau tentara di luar negeri adalah persona favorit penipuan romantis karena mustahil ditemui."},{id:"paket",l:"Paket berisi uang dan emas",y:"Cerita paket mahal dibuat supaya ada alasan meminta uang."},{id:"fee",l:"Minta bantu bayar bea cukai",y:"Setelah ada kedekatan emosional, uang jadi mudah diminta. Itu tujuannya sejak awal."}],
+ opts:[{t:"Transfer, kasihan dia sudah lama menunggu",v:"bad",r:"Setelah transfer pertama, biaya berikutnya muncul tanpa henti sampai kamu berhenti.",esc:"Terima kasih sayang. Ternyata ada denda lagi Rp14.000.000."},
+       {t:"Tolak dan putuskan kontak. Tidak mengirim uang ke orang yang belum pernah bertemu",v:"best",r:"Tepat. Aturan itu sederhana dan melindungi kamu dari seluruh variasi skenario ini."},
+       {t:"Minta video call dulu",v:"risky",r:"Penipu memakai rekaman atau deepfake. Tidak ada video call yang membuktikan keamanan transfer."},
+       {t:"Bagi dua saja, kirim Rp2 juta",v:"bad",r:"Nominal separuh tetap uang hilang, dan kamu ditandai sebagai korban yang mau memberi."}],
+ lesson:"Tidak peduli seberapa dekat, jangan kirim uang kepada orang yang belum pernah kamu temui langsung.",
+ official:"Blokir akun dan laporkan ke platform. Jika sudah transfer, hubungi bank dan lapor ke polisi (patrolisiber.id).",
+ card:{t:"Orang asing, uang, tidak pernah",r:"Tidak ada alasan sah bagi kenalan daring yang belum pernah bertemu untuk meminta uangmu."}},
+
+{id:"polisi",ch:"WhatsApp",d:3,title:"“Polisi” video call, kamu tersangka",from:"Kompol Budi (video call)",truth:"scam",emo:"Takut",
+ emoWhy:"Pangkat, seragam, dan ancaman hukum menciptakan ketakutan yang membuat orang patuh dan merahasiakan semuanya.",
+ msgs:[{w:"sys",t:"Panggilan video masuk, penelepon berseragam"},{w:"them",t:"Saya Kompol Budi dari [[Mabes Polri|aut]]. Nomor Anda [[dipakai untuk pencucian uang. Anda tersangka|take]]."},{w:"them",t:"[[Jangan beri tahu siapa pun, termasuk keluarga|rahasia]]. [[Pindahkan dana ke rekening aman kami untuk pemeriksaan|safe]]."},{w:"them",t:"[[Ini surat penangkapan|surat]] akan terbit jika Anda menolak."}],
+ flags:[{id:"aut",l:"Mengaku instansi via WhatsApp",y:"Polisi tidak memeriksa lewat video call WhatsApp dan tidak menelepon untuk menuduh."},{id:"take",l:"Tuduhan mendadak",y:"Rasa bersalah dan takut dipakai untuk melumpuhkan nalar."},{id:"rahasia",l:"Diminta merahasiakan",y:"Aparat sungguhan tidak menyuruh kamu diam dari keluarga."},{id:"safe",l:"Rekening aman",y:"Tidak ada instansi yang meminta kamu memindahkan dana ke rekening tertentu."},{id:"surat",l:"Surat penangkapan di chat",y:"Surat resmi tidak dikirim lewat chat dan dengan ancaman waktu."}],
+ opts:[{t:"Pindahkan dana ke rekening aman supaya terbebas",v:"bad",r:"Dana lenyap. Tuduhan tidak pernah ada.",esc:"Pemeriksaan lanjutan: transfer lagi Rp50.000.000 sebagai jaminan."},
+       {t:"Tutup panggilan, datangi kantor polisi sendiri dan ceritakan ke keluarga",v:"best",r:"Tepat. Menutup panggilan memutus skenario dan membuka jalur verifikasi."},
+       {t:"Minta nama dan NRP lalu cek",v:"risky",r:"Data seperti itu bisa dikarang. Jalur penghubungnya sendiri sudah salah."},
+       {t:"Ikuti, tapi hanya transfer Rp1 juta",v:"bad",r:"Satu langkah kecil membuka tuntutan berikutnya. Kamu menandai diri sebagai orang yang patuh."}],
+ lesson:"Instansi penegak hukum tidak menuduh, memeriksa, dan meminta dana lewat video call. Takut itu bahan bakar mereka.",
+ official:"Datangi kantor polisi terdekat atau laporkan lewat patrolisiber.id. Ceritakan ke keluarga.",
+ card:{t:"Instansi tidak minta transfer",r:"Polisi, jaksa, dan bea cukai tidak memeriksa lewat chat dan tidak pernah meminta dana ke rekening pribadi."}},
+
+{id:"refund",ch:"WhatsApp",d:2,title:"Refund tetapi diminta scan QR",from:"CS Toko Gadget Sejahtera",truth:"scam",emo:"Panik",
+ emoWhy:"Pesanan dibatalkan lalu dana menggantung membuat orang panik dan ingin segera selesai.",
+ msgs:[{w:"them",t:"Pesanan Anda dibatalkan. Kami [[proses refund Rp1.850.000|ref]]."},{w:"them",t:"Silakan [[pindai QR ini lewat m-banking Anda untuk menerima dana|qr]]. [[Masukkan PIN untuk konfirmasi|pin]]."}],
+ flags:[{id:"ref",l:"Refund tak jelas pesanannya",y:"Tidak menyebut nomor pesanan atau kanal resmi toko. Refund sah kembali ke sumber pembayaran."},{id:"qr",l:"Scan QR untuk menerima",y:"Memindai QR hampir selalu berarti membayar, bukan menerima uang."},{id:"pin",l:"Masukkan PIN",y:"PIN dimasukkan hanya saat kamu mengirim uang."}],
+ opts:[{t:"Scan dan masukkan PIN supaya dana kembali",v:"bad",r:"Kamu justru membayar Rp1.850.000 ke rekening penjahat.",esc:"Ada kendala. Mohon scan sekali lagi untuk koreksi."},
+       {t:"Cek pesanan di aplikasi toko. Refund masuk otomatis, tak butuh scan atau PIN",v:"best",r:"Tepat. Menerima uang tidak membutuhkan tindakanmu selain menunggu."},
+       {t:"Minta mereka kirim nomor rekening, lalu kamu yang transfer",v:"risky",r:"Salah arah. Refund sah tidak membuatmu yang mentransfer atau memberi data kartu."},
+       {t:"Scan saja, tapi tidak mengisi PIN",v:"bad",r:"Tampilan sebelum PIN pun sudah menunjukkan nominal tagihan. Berhenti di scan pun berisiko."}],
+ lesson:"Menerima uang tidak butuh PIN atau scan. Jika diminta, kamu sedang disuruh membayar.",
+ official:"Hubungi layanan pelanggan lewat aplikasi toko. Laporkan akun penipu ke platform.",
+ card:{t:"Scan QR hanya untuk membayar",r:"Refund dan hadiah tidak butuh scan atau PIN dari penerima."}},
+
+{id:"email",ch:"Email",d:2,title:"Email “akunmu ditangguhkan”",from:"Layanan Akun",truth:"scam",emo:"Panik",
+ emoWhy:"Kehilangan akses ke akun penting bikin cemas dan mengejar penyelesaian cepat.",
+ msgs:[{w:"sys",t:"Email masuk"},{w:"them",t:"Dari: noreply@[[akun-aman-verif.example|dom]]"},{w:"them",t:"Kami mendeteksi [[login mencurigakan dari Rusia|take]]. [[Verifikasi dalam 12 jam|urg]] atau akun ditangguhkan: [[akun-aman-verif.example/masuk|link]]"},{w:"them",t:"Salam, [[Tim Keamanan|gen]]"}],
+ flags:[{id:"dom",l:"Alamat pengirim aneh",y:"Domain asli perusahaan tidak berbentuk “akun-aman-verif”. Bandingkan dengan alamat resmi yang kamu kenal."},{id:"take",l:"Peringatan login mencurigakan",y:"Alarm keamanan palsu dipakai agar kamu panik dan mengetik kata sandi."},{id:"urg",l:"Tenggat 12 jam",y:"Penyedia layanan sungguhan tidak menutup akunmu dalam 12 jam tanpa peringatan di aplikasi."},{id:"link",l:"Tautan masuk",y:"Halaman login palsu menyalin kata sandimu saat kamu mengetik."},{id:"gen",l:"Tanda tangan generik",y:"Tidak ada nama atau kontak spesifik."}],
+ opts:[{t:"Klik tautan dan masuk untuk memverifikasi",v:"bad",r:"Kata sandi dan kode verifikasimu tersalin ke penjahat. Akun lain dengan kata sandi sama juga terancam."},
+       {t:"Buka situs atau aplikasi resmi sendiri, cek notifikasi, ganti kata sandi bila perlu",v:"best",r:"Tepat. Kalau memang ada masalah, peringatan sungguhan muncul di dalam akun."},
+       {t:"Balas email dan tanya kebenarannya",v:"risky",r:"Balasan hanya membuktikan alamatmu aktif dan memberi kesempatan mereka membujuk lebih jauh."},
+       {t:"Laporkan sebagai phishing lalu hapus",v:"ok",r:"Aman. Setelahnya, cek akun lewat jalur resmi untuk memastikan tak ada aktivitas aneh."}],
+ lesson:"Peringatan keamanan sungguhan bisa diverifikasi tanpa mengklik tautan. Masuklah dari jalurmu sendiri.",
+ official:"Gunakan tombol laporkan phishing di aplikasi email. Aktifkan verifikasi dua langkah di akun pentingmu.",
+ card:{t:"Jeda 10 detik",r:"Tenggat dan ancaman dirancang untuk melewati pikiranmu. Berhenti sejenak mengembalikan kendali."}},
+
+{id:"kurir",ch:"SMS",d:1,title:"Notifikasi pesanan di aplikasi toko",from:"Aplikasi Toko Contoh",truth:"legit",emo:"Tenang",
+ emoWhy:"Pemberitahuan rutin tentang pesananmu sendiri. Tidak ada tekanan.",
+ ctx:"Kemarin kamu memesan headset lewat aplikasi Toko Contoh dan notifikasi ini muncul di aplikasi itu.",
+ msgs:[{w:"sys",t:"Notifikasi di dalam aplikasi"},{w:"them",t:"Pesananmu #TC-70412 (Headset Nirkabel) sedang dikirim kurir. [[Estimasi tiba hari Jumat|eta]]."},{w:"them",t:"[[Lacak di halaman Pesanan Saya.|trace]] [[Kami tidak pernah meminta OTP atau kata sandi.|warn]]"}],
+ flags:[{id:"eta",l:"Estimasi tiba",ok:1,y:"Rincian cocok dengan barang yang kamu pesan, lengkap dengan nomor pesanan."},{id:"trace",l:"Arahan melacak di aplikasi",ok:1,y:"Pesan menyuruhmu memakai halaman di dalam aplikasi, tanpa tautan luar."},{id:"warn",l:"Peringatan tak minta OTP",ok:1,y:"Pernyataan itu konsisten dengan praktik aman, bukan permintaan data."}],
+ opts:[{t:"Buka aplikasi sendiri dan lacak pesananmu",v:"best",r:"Tepat. Cukup, tanpa risiko."},
+       {t:"Abaikan saja, nanti juga tiba",v:"ok",r:"Wajar untuk pesanan yang memang kamu tunggu."},
+       {t:"Balas dengan nomor rekening supaya cepat diproses",v:"bad",r:"Pesanan yang sah tidak butuh nomor rekeningmu. Jangan bagikan data ke balasan pesan.",esc:"Terima kasih. Mohon kirim juga kode OTP yang masuk."}],
+ lesson:"Cocokkan dengan hal yang memang kamu lakukan. Pesan sah sesuai konteks, tanpa tautan luar dan tanpa permintaan data.",
+ official:"Pantau dari halaman Pesanan Saya di aplikasi resmi toko.",
+ card:{t:"Cocokkan dengan konteksmu",r:"Tanyakan: apakah aku memang memesan, mendaftar, atau mengurus ini? Jika ya dan tidak ada tekanan, kemungkinan sah."}},
+
+{id:"kodewa",ch:"WhatsApp",d:2,title:"Teman minta kode yang “salah kirim”",from:"Fajar (teman kuliah)",truth:"scam",emo:"Sungkan",
+ emoWhy:"Permintaan kecil dari teman terasa tak enak ditolak.",
+ msgs:[{w:"them",t:"[[Bro|bro]], ada kode 6 digit masuk ke nomor kamu ya, [[salah kirim|code]]."},{w:"them",t:"[[Tolong kirim balik cepat|urg]]. [[Aku lagi ribet, jangan telepon dulu|nocall]]."}],
+ flags:[{id:"bro",l:"Sapaan akrab",ok:1,y:"Gaya bicara bisa persis sama karena akun asli temanmu sudah diambil alih."},{id:"code",l:"Minta kode 6 digit",y:"Itu kode verifikasi WhatsApp. Dengan kode itu penjahat memindahkan akunmu ke ponselnya."},{id:"urg",l:"Didesak cepat",y:"Supaya kamu tidak sempat bertanya."},{id:"nocall",l:"Larangan menelepon",y:"Pelaku tidak mau suaranya diuji. Menelepon adalah verifikasi paling murah."}],
+ opts:[{t:"Kirim kodenya, namanya juga teman",v:"bad",r:"Akun WhatsApp-mu dipindah ke ponsel penjahat. Ia lalu mengirim pesan serupa ke seluruh kontakmu.",esc:"Makasih bro! Btw boleh pinjem Rp500 ribu dulu?"},
+       {t:"Telepon Fajar lewat suara atau kanal lain, jangan bagikan kode",v:"best",r:"Tepat. Suara temanmu yang asli adalah bukti terbaik."},
+       {t:"Tanya kode itu untuk apa",v:"risky",r:"Jawaban meyakinkan bisa disiapkan. Kode verifikasi tidak untuk diteruskan siapa pun."},
+       {t:"Abaikan tanpa memberi tahu Fajar",v:"ok",r:"Aman untukmu. Kabari Fajar lewat kanal lain supaya ia segera memulihkan akunnya."}],
+ lesson:"Kode verifikasi hanya untuk kamu. Kode yang masuk ke ponselmu adalah kunci akunmu sendiri.",
+ official:"Beri tahu Fajar lewat kanal lain. Aktifkan verifikasi dua langkah di WhatsApp.",
+ card:{t:"Kode bukan untuk dibagi",r:"Kode WhatsApp yang masuk ke ponselmu adalah kunci akunmu. Jangan teruskan ke siapa pun, termasuk teman."}}
+];
+
+var KILAT=[
+{t:"Kode OTP Anda 483920. Jangan beritahukan kode ini kepada siapa pun. (Muncul tepat setelah kamu login sendiri.)",s:0,w:"Kode otomatis dari proses yang kamu mulai sendiri. Aman selama tidak dibagikan."},
+{t:"Selamat, Anda terpilih jadi pemenang! Klik bit.ly/hadiah-resmi sekarang.",s:1,w:"Hadiah yang tidak kamu ikuti ditambah tautan pendek adalah pola umum."},
+{t:"Ibu, ini Dimas. HP saya hilang, tolong transfer Rp1 juta ke rekening baru ini.",s:1,w:"Nomor baru ditambah permintaan uang. Verifikasi ke nomor lama."},
+{t:"Tagihan listrik bulan ini Rp212.400 sudah terbayar. Terima kasih. (Dari aplikasi pembayaran yang rutin kamu pakai.)",s:0,w:"Pemberitahuan konfirmasi di aplikasi yang kamu kenal, tanpa tautan atau permintaan."},
+{t:"Akun ShopX Anda dibekukan. Verifikasi di shopx-login.example agar tidak hangus.",s:1,w:"Ancaman penutupan dan tautan ke domain tiruan."},
+{t:"Admin fee Rp200.000 dibutuhkan untuk mencairkan pinjaman Anda.",s:1,w:"Pinjaman sah memotong biaya dari pencairan, bukan menyetor di muka."},
+{t:"Rapat besok pukul 09.00 di ruang 3. Dokumen terlampir (PDF). (Dari rekan yang kamu kenal, grup kantor.)",s:0,w:"Konteks dan pengirimmu jelas. File PDF dari rekan dalam konteks kerja wajar."},
+{t:"Cashback 90% hari ini saja! Pasang aplikasi dari tautan ini (.apk).",s:1,w:"Penawaran tak masuk akal ditambah APK dari luar toko aplikasi."},
+{t:"Jadwal vaksin anak diundur ke Selasa. Salam, Puskesmas Kelurahan. (Dari kontak yang tersimpan, tanpa tautan.)",s:0,w:"Informasi jadwal tanpa tautan atau permintaan data dari kontak resmi."},
+{t:"Saya dari Bea Cukai, paketmu dari luar negeri tertahan. Bayar Rp3 juta ke rekening pribadi.",s:1,w:"Bea cukai tidak menagih ke rekening pribadi lewat chat."},
+{t:"Selamat bergabung! Komisi bisa ditarik setelah deposit Rp1 juta.",s:1,w:"Menarik komisi setelah deposit adalah ciri skema penipuan."},
+{t:"Verifikasi akunmu dengan mengirim foto KTP dan selfie ke admin Telegram.",s:1,w:"Data identitas dikirim ke orang tak dikenal mudah disalahgunakan."},
+{t:"Pembayaran QRIS Rp25.000 di Kedai Kopi Contoh berhasil. (Notifikasi dari aplikasi e-wallet setelah kamu membayar.)",s:0,w:"Konfirmasi setelah transaksi yang kamu lakukan sendiri."},
+{t:"Hai, ini Pak RT. Besok kerja bakti jam 7 pagi. (Di grup warga yang kamu ikuti.)",s:0,w:"Informasi rutin di grup yang kamu kenal, tanpa tekanan atau permintaan uang."},
+{t:"BPJS Anda menunggak. Klik tautan untuk bayar atau kartu nonaktif hari ini.",s:1,w:"Ancaman dan tautan. Cek lewat aplikasi atau kanal resmi BPJS."},
+{t:"Kirim kode yang baru masuk ya, aku salah ketik nomor.",s:1,w:"Itu kode verifikasi akunmu, bukan salah ketik nomor."}
+];
+
+var RULES=[
+{re:/\b(otp|kode (verifikasi|rahasia|keamanan)|6 digit|enam digit|pin\b|cvv|password|kata sandi)/gi,w:3,t:"Menyinggung kode rahasia",d:"OTP, PIN, dan kata sandi tidak boleh dibagikan. Jika pesan hanya mengingatkan agar tidak membagikan, itu wajar. Waspada bila kamu diminta menyebutkannya."},
+{re:/(segera|sekarang juga|dalam \d+\s*(jam|menit)|hari ini saja|batas waktu|sebelum pukul|diblokir|ditangguhkan|dinonaktifkan|kedaluwarsa|hangus|terakhir)/gi,w:2,t:"Tekanan waktu atau ancaman",d:"Tenggat mendadak dipakai agar kamu tidak sempat memeriksa."},
+{re:/\b(bit\.ly|tinyurl\.com|s\.id|cutt\.ly|t\.ly|shorturl\.at|rebrand\.ly)\S*/gi,w:3,t:"Tautan pendek",d:"Tautan pendek menyembunyikan tujuan sebenarnya. Jangan klik."},
+{re:/\b[\w-]+(\.[\w-]+)*\.(xyz|top|icu|click|vip|site|cc|buzz|monster|cfd|example)\b\S*/gi,w:2,t:"Domain yang janggal",d:"Domain dengan akhiran tak lazim atau meniru nama merek patut dicurigai. Buka situs resmi lewat jalurmu sendiri."},
+{re:/\.apk\b|unduh aplikasi|pasang aplikasi|instal aplikasi/gi,w:4,t:"Ajakan memasang aplikasi",d:"File APK dari chat dapat membaca SMS dan OTP-mu."},
+{re:/(biaya (admin|pencairan|asuransi|ongkir|redelivery|kirim ulang)|pajak hadiah|deposit|uang muka|bayar dulu|transfer dulu|top ?up dulu)/gi,w:4,t:"Bayar di muka",d:"Biaya sebelum menerima sesuatu adalah ciri penipuan."},
+{re:/(selamat.{0,40}(menang|pemenang|terpilih)|undian|hadiah|giveaway)/gi,w:3,t:"Hadiah atau undian",d:"Cek dulu: apakah kamu memang mendaftar?"},
+{re:/(\d+\s?%\s?(per|\/)\s?(hari|minggu|jam)|profit (pasti|harian)|tanpa risiko|dijamin (untung|aman|cair)|cuan)/gi,w:4,t:"Janji untung pasti",d:"Investasi sah tidak menjanjikan untung pasti dan tanpa risiko."},
+{re:/(jangan (bilang|beri tahu|kasih tahu|cerita)|rahasiakan|rahasia ya)/gi,w:4,t:"Diminta merahasiakan",d:"Permintaan merahasiakan bertujuan menutup jalur verifikasi."},
+{re:/(nomor baru|hp (saya|mama|papa|ibu|bapak)? ?(rusak|hilang)|ganti nomor)/gi,w:3,t:"Ganti nomor mendadak",d:"Verifikasi ke nomor lama lewat telepon sebelum membalas."},
+{re:/(polisi|polri|kejaksaan|kejati|pengadilan|bea cukai|penangkapan|pencucian uang|tersangka|surat panggilan)/gi,w:3,t:"Mengaku aparat atau ancaman hukum",d:"Instansi tidak memeriksa atau menagih lewat chat."},
+{re:/(foto ktp|selfie.{0,10}ktp|nomor kartu|nomor rekening anda|\bnik\b)/gi,w:3,t:"Meminta data identitas",d:"Data identitas dapat dipakai membuat pinjol atau akun palsu atas namamu."},
+{re:/(yth\.?\s*(pelanggan|nasabah|bapak\/ibu)|dear (customer|user)|kepada (pelanggan|nasabah))/gi,w:1,t:"Sapaan generik",d:"Pesan sah umumnya menyebut namamu atau nomor pesananmu."},
+{re:/((scan|pindai).{0,20}qr|refund|pengembalian dana)/gi,w:3,t:"Refund atau scan QR",d:"Menerima dana tidak butuh scan QR atau PIN dari penerima."},
+{re:/(like (dan|&) (subscribe|review)|kerja paruh waktu|gaji.{0,20}per hari|tugas (harian|pertama))/gi,w:3,t:"Pekerjaan mudah dengan gaji besar",d:"Pekerjaan nyata tidak seperti ini."},
+{re:/(telegram|pindah (ke )?wa|chat (saya )?lewat wa)/gi,w:1,t:"Mengajak pindah kanal",d:"Pindah ke aplikasi lain mempersulit pelacakan."}
+];
+var SAMPLES=[
+"Yth. Pelanggan, paket Anda tertahan. Bayar biaya kirim ulang Rp3.500 dalam 2 jam: bit.ly/paket-resmi",
+"Halo nak, ini nomor baru Mama, hp Mama rusak. Tolong transfer dulu Rp1.500.000 ya. Jangan bilang Papa dulu.",
+"Bank Contoh: transfer keluar Rp350.000 berhasil. Jangan berikan OTP kepada siapa pun termasuk petugas bank."
+];
+var EMOS=["Panik","Takut","Tergiur","Iba","Sungkan","Penasaran","Tenang"];
+var VXP={best:30,ok:18,risky:6,bad:0}, VST={best:3,ok:2,risky:1,bad:0};
+var RANKS=[{n:"Pemula",x:0},{n:"Pemeriksa Pesan",x:150},{n:"Penjaga Keluarga",x:450},{n:"Pemburu Tipuan",x:800},{n:"Penangkal Tipuan",x:1150}];
+var CHS=["Semua","SMS","WhatsApp","Telepon","Email","Marketplace","Medsos","Telegram"];
+
+/* ---------- STATE ---------- */
+var LS="cekdulu.v1";
+function load(){try{var r=JSON.parse(localStorage.getItem(LS));if(r&&r.cases)return r}catch(e){}return{cases:{},kilat:{},streak:0,last:"",theme:""}}
+var S=load();
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+var route="home",P=null,K=null,filter="Semua",chk="",demo={},confirmReset=false;
+
+function today(d){d=d||new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function touch(){var t=today();if(S.last===t)return;var y=new Date();y.setDate(y.getDate()-1);S.streak=(S.last===today(y))?S.streak+1:1;S.last=t;save()}
+function xp(){var t=0;for(var k in S.cases)t+=S.cases[k].xp||0;t+=Object.keys(S.kilat).length*8;return t}
+function rankOf(x){var r=RANKS[0];RANKS.forEach(function(a){if(x>=a.x)r=a});return r}
+function nextRank(x){for(var i=0;i<RANKS.length;i++)if(RANKS[i].x>x)return RANKS[i];return null}
+function nCards(){return Object.keys(S.cases).length}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function $(s,e){return(e||document).querySelector(s)}
+function toast(m){var t=$("#toast");t.innerHTML='<div class="toast" role="status">'+esc(m)+'</div>';setTimeout(function(){t.innerHTML=""},2200)}
+function stars(n,big){var h="";for(var i=0;i<3;i++)h+=(i<n?"<b>★</b>":"★");return'<span class="'+(big?"bigstars":"stars")+'" aria-label="'+n+' dari 3 bintang">'+h+"</span>"}
+
+/* ---------- CHAT RENDER ---------- */
+function parse(t){var o=[],l=0,m,re=/\[\[(.+?)\|(.+?)\]\]/g;while((m=re.exec(t))){if(m.index>l)o.push({s:t.slice(l,m.index)});o.push({s:m[1],f:m[2]});l=re.lastIndex}if(l<t.length)o.push({s:t.slice(l)});return o}
+function flagMap(c){var m={};c.flags.forEach(function(f){m[f.id]=f});return m}
+/* mode: plain | tap | done ; st: {found:{}, tapped:{}} */
+function seg(c,t,mode,st,pfx){
+  var fm=flagMap(c);
+  return parse(t).map(function(p){
+    if(!p.f)return esc(p.s);
+    var f=fm[p.f],tp=st.tapped[pfx+p.f],cls="fl";
+    if(mode==="plain")return'<span class="fl hint">'+esc(p.s)+"</span>";
+    if(mode==="tap"){
+      if(tp)cls+=f.ok?" ok":" found";
+      return'<button class="'+cls+'" data-f="'+pfx+p.f+'" aria-label="Tandai: '+esc(p.s)+'">'+esc(p.s)+"</button>";
+    }
+    if(tp)cls+=f.ok?" ok":" found";else if(!f.ok)cls+=" missed";else cls+=" hint";
+    return'<span class="'+cls+'">'+esc(p.s)+"</span>";
+  }).join("");
+}
+function chat(c,mode,st,extra,pfx){
+  pfx=pfx||"";
+  var h=c.msgs.map(function(m){
+    var inner=seg(c,m.t,mode,st,pfx);
+    if(m.w==="sys")return'<div class="msg sys">'+esc(m.t)+"</div>";
+    if(m.f)return'<div class="msg file"><span class="ico">APK</span><span>'+inner+"</span></div>";
+    return'<div class="msg '+(m.w==="me"?"me":"")+'">'+inner+"</div>";
+  }).join("");
+  return h+(extra||"");
+}
+function phone(c,body){
+  return'<div class="phone"><div class="ph-h"><span class="av">'+esc((c.from||"?").charAt(0).toUpperCase())+'</span><div><b>'+esc(c.from)+"</b><span>"+esc(c.ch)+'</span></div></div><div class="chat" id="chat">'+body+"</div></div>";
+}
+
+/* ---------- VIEWS ---------- */
+function nav(){
+  var items=[["home","Beranda"],["peta","Peta kasus"],["kartu","Kartu "+nCards()+"/"+CASES.length],["periksa","Periksa pesan"],["kilat","Mode kilat"],["info","Info"]];
+  $("#nav").innerHTML=items.map(function(i){return'<button data-r="'+i[0]+'"'+(route===i[0]||(route==="play"&&i[0]==="peta")?' aria-current="page"':"")+">"+i[1]+"</button>"}).join("");
+  $("#xpPill").textContent=xp()+" XP";
+}
+
+var DEMOCASE={from:"PosCepat",ch:"SMS",msgs:[{w:"them",t:"Yth. [[Pelanggan|d1]], paket Anda tertahan. [[Bayar Rp3.500 dalam 3 jam|d2]] di [[poscepat-redelivery.example|d3]]."}],
+ flags:[{id:"d1",l:"Sapaan generik",y:"Pesan kurir asli menyebut namamu atau nomor resi."},{id:"d2",l:"Biaya kecil dengan tenggat",y:"Nominal kecil dan batas waktu memancing refleks, bukan pemeriksaan."},{id:"d3",l:"Domain tiruan",y:"Alamat itu bukan milik kurir. Buka aplikasi resmi sendiri."}]};
+
+function vHome(){
+  var x=xp(),rk=rankOf(x),nx=nextRank(x),done=nCards();
+  var nc=null;for(var i=0;i<CASES.length;i++)if(!S.cases[CASES[i].id]){nc=CASES[i];break}
+  var pct=nx?Math.round((x-rk.x)/(nx.x-rk.x)*100):100;
+  var dh=DEMOCASE.flags.filter(function(f){return demo["d:"+f.id]});
+  var dm=dh.length?dh.map(function(f){return'<div class="fnd"><b>'+esc(f.l)+"</b>"+esc(f.y)+"</div>"}).join(""):'<p class="sub" style="color:var(--mute);font-size:14px;margin-top:12px">Ketuk bagian yang bergaris kuning untuk melihat kenapa itu janggal.</p>';
+  var st={tapped:{}};for(var k in demo)if(k.indexOf("d:")===0)st.tapped[k.slice(2)]=1;
+  var dem=chat(DEMOCASE,"tap",st,"","");
+  return'<div class="view"><section class="hero"><div>'
+   +'<span class="mono">Simulator anti-penipuan · Indonesia</span>'
+   +"<h1>Ragu itu bukan lemah. <em>Itu pertahanan.</em></h1>"
+   +'<p class="lead">'+CASES.length+" kasus penipuan yang dekat dengan kita, dimainkan sebagai chat. Tandai jebakannya, ukur seberapa yakin kamu, pilih langkah, lalu lihat akibatnya sebelum kejadian nyata menimpamu.</p>"
+   +'<div class="row"><button class="btn sig" data-act="next">'+(nc?"Mulai misi berikutnya":"Ulangi kasus favoritmu")+' →</button><button class="btn ghost" data-r="peta">Lihat peta kasus</button><button class="btn ghost" data-r="periksa">Periksa pesan</button></div></div>'
+   +"<div>"+phone(DEMOCASE,dem)+'<div class="found-list" id="demoList">'+dm+"</div></div></section>"
+   +'<div class="stats"><div class="card stat"><b>'+x+'</b><span>Total XP</span></div>'
+   +'<div class="card stat"><b style="font-size:22px">'+esc(rk.n)+'</b><div class="bar-t"><i style="width:'+pct+'%"></i></div><span>'+(nx?(nx.x-x)+" XP lagi menuju "+nx.n:"Peringkat tertinggi")+"</span></div>"
+   +'<div class="card stat"><b>'+done+"/"+CASES.length+"</b><span>Kasus selesai</span></div>"
+   +'<div class="card stat"><b>'+(S.streak||0)+"</b><span>Hari beruntun</span></div></div>"
+   +'<section class="card"><div class="sec-h" style="margin:0 0 14px"><h2 style="font-size:28px">Empat langkah, sepuluh detik</h2><span class="mono">Dipakai di setiap kasus</span></div><div class="steps4">'
+   +'<div class="st"><div class="k">J</div><b>Jeda</b><span>Namai rasa yang sedang dipancing pesan.</span></div>'
+   +'<div class="st"><div class="k">A</div><b>Amati</b><span>Tandai bagian yang janggal. Hati-hati, tidak semua janggal itu jahat.</span></div>'
+   +'<div class="st"><div class="k">T</div><b>Taksir</b><span>Seberapa yakin kamu, dan atas bukti apa.</span></div>'
+   +'<div class="st"><div class="k">P</div><b>Putuskan</b><span>Pilih langkah. Pelaku bisa membalas, dan akibatnya terlihat.</span></div></div></section>'
+   +'<div class="note"><b>Privasi sejak awal.</b> Aplikasi ini tidak meminta nama, nomor telepon, PIN, OTP, atau data rekening. Progres hanya tersimpan di perangkat ini dan bisa dihapus kapan saja di halaman Info. Semua nama merek, nomor, dan tautan adalah rekaan. Domain <code>.example</code> bukan alamat nyata.</div></div>';
+}
+
+function vPeta(){
+  var list=CASES.filter(function(c){return filter==="Semua"||c.ch===filter});
+  return'<div class="view"><div class="sec-h" style="margin-top:6px"><h2>Peta kasus</h2><span class="mono">'+nCards()+" dari "+CASES.length+" selesai</span></div>"
+   +'<div class="chips" role="group" aria-label="Filter kanal">'+CHS.map(function(c){return'<button class="chip" data-filter="'+c+'" aria-pressed="'+(filter===c)+'">'+c+"</button>"}).join("")+"</div>"
+   +'<div class="grid">'+list.map(function(c){
+      var s=S.cases[c.id];
+      return'<button class="tile" data-case="'+c.id+'"><div class="meta"><span class="tag">'+esc(c.ch)+'</span><span class="dots" aria-label="Kesulitan '+c.d+' dari 3">'+[1,2,3].map(function(i){return'<i class="'+(i<=c.d?"on":"")+'"></i>'}).join("")+"</span></div>"
+       +"<h3>"+esc(c.title)+"</h3><div class=\"meta\">"+(s?stars(s.stars)+'<span class="mono">'+s.xp+" XP</span>":'<span class="mono">Belum dimainkan</span>')+"</div></button>"}).join("")+"</div></div>";
+}
+
+var STEPN=["Jeda","Amati","Taksir","Putuskan"];
+function stepper(n){return'<div class="stepper">'+STEPN.map(function(s,i){return'<span class="'+(i===n?"on":i<n?"done":"")+'">'+s+"</span>"}).join("")+"</div>"}
+function realCount(c){return c.flags.filter(function(f){return!f.ok}).length}
+function confLabel(v){return v<=10?"Hampir pasti pesan yang sah":v<=35?"Lebih mungkin sah":v<=65?"Belum bisa dipastikan":v<=90?"Lebih mungkin penipuan":"Hampir pasti penipuan"}
+
+function vPlay(){
+  var c=P.c,step=P.step;
+  var mode=step===1?"tap":(step>=2?"done":"plain");
+  var extra="";
+  if(step>=3&&P.res){
+    extra='<div class="msg me">'+esc(P.res.o.t)+"</div>"+(P.res.o.esc?'<div class="msg esc">'+esc(P.res.o.esc)+"</div>":"");
+  }
+  var left=(c.ctx&&step<3?'<div class="note" style="margin:0 0 12px;background:var(--warnbg)"><b>Konteks:</b> '+esc(c.ctx)+"</div>":"")+phone(c,chat(c,step===4?"done":mode,P,extra));
+  var right="";
+  if(step===0){
+    right='<h2>Jeda dulu</h2><p class="sub">Sebelum membaca detailnya: rasa apa yang paling dipancing pesan ini?</p><div class="emo">'
+     +EMOS.map(function(e){return'<button class="opt" data-emo="'+e+'"'+(P.emo?" disabled":"")+(P.emo===e?' style="border-color:var(--ink)"':"")+">"+e+"</button>"}).join("")+"</div>";
+    if(P.emo){var ok=P.emo===c.emo;right+='<div class="verdict '+(ok?"best":"ok")+'" style="margin-top:16px">'+(ok?"Tepat. ":"Yang paling dipancing adalah <b>"+esc(c.emo)+"</b>. ")+esc(c.emoWhy)+'</div><button class="btn" data-act="s1">Lanjut: amati pesan →</button>'}
+  }
+  if(step===1){
+    var R=realCount(c),fd=c.flags.filter(function(f){return P.tapped[f.id]&&!f.ok}).length;
+    right='<h2>Amati</h2><p class="sub">'+(R?"Ketuk bagian yang menurutmu janggal. Ada "+R+" tanda bahaya sungguhan, dan beberapa bagian hanya tampak janggal.":"Ketuk bagian yang menurutmu patut dicurigai. Kamu akan melihat apakah kecurigaan itu beralasan.")+'</p>'
+     +'<div class="mono" style="margin-bottom:8px">'+fd+" dari "+R+" tanda bahaya ditemukan</div><div class=\"found-list\">"
+     +c.flags.filter(function(f){return P.tapped[f.id]}).map(function(f){return'<div class="fnd'+(f.ok?" ok":"")+'"><b>'+(f.ok?"Ternyata wajar":"Tanda bahaya")+" · "+esc(f.l)+"</b>"+esc(f.y)+"</div>"}).join("")
+     +'</div><button class="btn" data-act="s2">Selesai menandai →</button>';
+  }
+  if(step===2){
+    right='<h2>Taksir</h2><p class="sub">Seberapa yakin kamu bahwa pesan ini penipuan? Yakin yang pas lebih bernilai daripada yakin yang berlebihan.</p>'
+     +'<div class="conf-big" id="cv">'+P.conf+'%</div><div class="conf-lab" id="cl">'+confLabel(P.conf)+'</div>'
+     +'<input type="range" id="slider" min="0" max="100" step="5" value="'+P.conf+'" aria-label="Keyakinan bahwa ini penipuan"><div class="scale"><span>Pasti sah</span><span>Pasti penipuan</span></div>'
+     +'<div class="row" style="margin-top:16px"><button class="btn" data-act="s3">Kunci jawaban →</button></div>';
+  }
+  if(step===3){
+    right='<h2>Putuskan</h2><p class="sub">Keyakinanmu '+P.conf+'%. Apa langkahmu sekarang?</p><div class="opts">'
+     +c.opts.map(function(o,i){return'<button class="opt" data-opt="'+i+'"'+(P.res?" disabled":"")+">"+esc(o.t)+"</button>"}).join("")+"</div>";
+  }
+  if(step===4){
+    var r=P.res,o=r.o;
+    right='<h2>'+(o.v==="best"?"Keputusan terbaik":o.v==="ok"?"Aman dan masuk akal":o.v==="risky"?"Masih berisiko":"Ini yang tidak boleh terjadi")+"</h2>"
+     +stars(VST[o.v],1)
+     +'<div class="verdict '+o.v+'">'+esc(o.r)+"</div>"
+     +'<div class="official"><b>Kebenarannya:</b> pesan ini '+(c.truth==="legit"?"sah.":"adalah penipuan.")+" "+esc(c.lesson)+"</div>"
+     +'<div class="rows"><div><span>Jeda</span><b>+'+r.emoXp+"</b></div><div><span>Amati</span><b>+"+r.flagXp+"</b></div><div><span>Taksir</span><b>+"+r.calXp+"</b></div><div><span>Keputusan</span><b>+"+r.decXp+'</b></div><div><span>Total kasus ini</span><b>'+r.total+" XP</b></div></div>"
+     +(r.delta>0?'<p class="mono" style="color:var(--safe);margin-bottom:10px">+'+r.delta+" XP masuk ke totalmu</p>":'<p class="mono" style="margin-bottom:10px">Skor terbaikmu tetap '+(S.cases[c.id].xp)+" XP</p>")
+     +'<div class="official"><b>Jalur resmi:</b> '+esc(c.official)+"</div>"
+     +'<div class="unlock"><span class="mono">Kartu terbuka</span><h3>'+esc(c.card.t)+"</h3><p>"+esc(c.card.r)+'</p></div>'
+     +'<div class="row"><button class="btn sig" data-act="nextcase">Kasus berikutnya →</button><button class="btn ghost" data-case="'+c.id+'">Ulangi</button><button class="btn ghost" data-r="peta">Peta</button></div>';
+  }
+  return'<div class="view"><div class="crumb"><button class="btn ghost" data-r="peta" style="padding:8px 14px">← Peta</button><span class="tag">'+esc(c.ch)+'</span><b style="font-family:var(--disp);font-size:20px">'+esc(c.title)+"</b></div>"
+   +stepper(step>3?3:step)+'<div class="play"><div>'+left+'</div><div class="card panel">'+right+"</div></div></div>";
+}
+
+function vKartu(){
+  return'<div class="view"><div class="sec-h" style="margin-top:6px"><h2>Kartu taktik</h2><span class="mono">'+nCards()+" dari "+CASES.length+" terbuka</span></div><div class=\"kgrid\">"
+   +CASES.map(function(c){var u=S.cases[c.id];
+     return u?'<div class="kc"><span class="mono">Dari kasus · '+esc(c.title)+"</span><h3>"+esc(c.card.t)+"</h3><p>"+esc(c.card.r)+"</p></div>"
+             :'<div class="kc lock"><span class="mono">Terkunci</span><h3>Selesaikan “'+esc(c.title)+'”</h3><p>Mainkan kasus ini untuk membuka kartunya.</p></div>'}).join("")+"</div></div>";
+}
+
+function analyze(text){
+  var hits=[],ranges=[],score=0;
+  RULES.forEach(function(r){var m,re=new RegExp(r.re.source,r.re.flags),found=false;
+    while((m=re.exec(text))){found=true;ranges.push([m.index,m.index+m[0].length]);if(m.index===re.lastIndex)re.lastIndex++}
+    if(found){hits.push(r);score+=r.w}});
+  ranges.sort(function(a,b){return a[0]-b[0]});
+  var mg=[];ranges.forEach(function(r){var l=mg[mg.length-1];if(l&&r[0]<=l[1])l[1]=Math.max(l[1],r[1]);else mg.push([r[0],r[1]])});
+  var out="",p=0;mg.forEach(function(r){out+=esc(text.slice(p,r[0]))+"<mark>"+esc(text.slice(r[0],r[1]))+"</mark>";p=r[1]});out+=esc(text.slice(p));
+  return{hits:hits,score:score,html:out};
+}
+function lvl(s){return s===0?["Tak ada pola dikenali","var(--safe)"]:s<4?["Rendah","var(--warn)"]:s<8?["Sedang","var(--warn)"]:s<13?["Tinggi","var(--sig)"]:["Sangat tinggi","var(--sig)"]}
+function result(text){
+  if(!text.trim())return'<p style="color:var(--mute)">Tempel pesan di kolom kiri. Pemeriksaan berjalan di perangkatmu, tidak ada yang dikirim ke mana pun.</p>';
+  var a=analyze(text),l=lvl(a.score),pc=Math.min(100,a.score*8);
+  return'<div class="mono">Tingkat kecurigaan</div><div class="lvl" style="color:'+l[1]+'">'+l[0]+'</div><div class="meter"><i style="width:'+pc+"%;background:"+l[1]+'"></i></div>'
+   +(a.hits.length?'<div class="found-list">'+a.hits.map(function(h){return'<div class="fnd"><b>'+esc(h.t)+"</b>"+esc(h.d)+"</div>"}).join("")+"</div>":"")
+   +'<div class="official"><b>Yang bisa kamu lakukan:</b> jangan klik, jangan balas, jangan sebut kode. Buka aplikasi resmi sendiri atau hubungi kontak yang sudah kamu kenal. Alat ini hanya membantu mengenali pola. Pesan tanpa tanda pun tetap bisa berbahaya.</div>'
+   +'<div class="mirror" aria-label="Pesan dengan penanda">'+a.html+"</div>";
+}
+function vPeriksa(){
+  return'<div class="view"><div class="sec-h" style="margin-top:6px"><h2>Periksa pesan</h2><span class="mono">Pemeriksaan di perangkatmu</span></div><div class="two"><div>'
+   +'<label for="chk" class="mono" style="display:block;margin-bottom:8px">Tempel pesan mencurigakan</label><textarea id="chk" placeholder="Salin teks pesan SMS, WhatsApp, atau email ke sini. Jangan sertakan PIN atau OTP asli.">'+esc(chk)+"</textarea>"
+   +'<div class="row" style="margin-top:10px"><span class="mono">Contoh:</span>'+SAMPLES.map(function(s,i){return'<button class="chip" data-sample="'+i+'">Contoh '+(i+1)+"</button>"}).join("")+'<button class="chip" data-sample="x">Kosongkan</button></div></div>'
+   +'<div class="card" id="chkRes">'+result(chk)+"</div></div></div>";
+}
+
+function newK(){var idx=KILAT.map(function(_,i){return i});for(var i=idx.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=idx[i];idx[i]=idx[j];idx[j]=t}
+  return{q:idx.slice(0,10),i:0,ok:0,combo:0,gain:0,ans:null}}
+function vKilat(){
+  if(!K)K=newK();
+  if(K.i>=K.q.length){
+    return'<div class="view kil"><div class="card" style="text-align:center"><span class="mono">Ronde selesai</span><div class="conf-big" style="margin:8px 0">'+K.ok+"/"+K.q.length+'</div><p class="sub" style="color:var(--mute)">'+(K.ok>=9?"Hampir tanpa cela.":K.ok>=7?"Insting yang bagus.":"Latihan lagi, kamu pasti makin tajam.")+"</p>"
+     +'<p class="mono" style="margin:14px 0">'+(K.gain?"+"+K.gain+" XP baru":"Tidak ada XP baru (soal yang sudah benar tidak dihitung lagi)")+'</p><div class="row" style="justify-content:center"><button class="btn sig" data-act="kagain">Main lagi</button><button class="btn ghost" data-r="home">Beranda</button></div></div></div>';
+  }
+  var it=KILAT[K.q[K.i]];
+  var fb="";
+  if(K.ans!==null){var good=(K.ans===1)===!!it.s;fb='<div class="verdict '+(good?"best":"bad")+'"><b>'+(good?"Benar. ":"Kurang tepat. ")+"Ini "+(it.s?"penipuan.":"pesan sah.")+"</b> "+esc(it.w)+"</div>"+'<button class="btn" data-act="knext">'+(K.i===K.q.length-1?"Lihat hasil":"Berikutnya")+" →</button>"}
+  return'<div class="view kil"><div class="sec-h" style="margin-top:6px"><h2>Mode kilat</h2><span class="mono">Soal '+(K.i+1)+" dari "+K.q.length+" · beruntun "+K.combo+'</span></div><p class="sub" style="color:var(--mute)">Penipuan atau pesan sah? Putuskan cepat, lalu baca alasannya. Pesan yang sah juga ada.</p>'
+   +'<div class="kq">'+esc(it.t)+"</div>"
+   +(K.ans===null?'<div class="two-b"><button class="btn" data-k="1">Penipuan</button><button class="btn ghost" data-k="0">Pesan sah</button></div>':fb)+"</div>";
+}
+
+var CHECKLIST="Sudah terlanjur? Lakukan berurutan:\n1. Telepon bank atau e-wallet lewat nomor resmi di kartu atau aplikasi, minta blokir.\n2. Ganti kata sandi akun penting, aktifkan verifikasi dua langkah.\n3. Simpan bukti: tangkapan layar chat, nomor rekening, bukti transfer.\n4. Laporkan ke kanal resmi (lihat daftar di halaman Info).\n5. Ceritakan ke orang terdekat. Penipu mengandalkan rasa malu.";
+function vInfo(){
+  return'<div class="view"><div class="sec-h" style="margin-top:6px"><h2>Info</h2></div><div class="two"><div class="card"><h3 style="font-size:24px;margin-bottom:12px">Jalur lapor dan bantuan</h3><ul class="list">'
+   +"<li><b>Bank atau e-wallet</b>Hubungi nomor resmi di belakang kartu atau di aplikasi. Minta blokir secepatnya.</li>"
+   +"<li><b>cekrekening.id</b>Cek apakah rekening pernah dilaporkan terkait penipuan, dan laporkan bila perlu.</li>"
+   +"<li><b>aduannomor.id</b>Laporkan nomor telepon atau SMS yang dipakai menipu.</li>"
+   +"<li><b>OJK 157</b>Pengaduan dan informasi seputar investasi, pinjaman, dan layanan keuangan. Cek juga Indonesia Anti-Scam Centre lewat situs OJK.</li>"
+   +"<li><b>Polisi</b>Kantor polisi terdekat atau patrolisiber.id untuk kejahatan siber.</li></ul>"
+   +'<p style="color:var(--mute);font-size:13px;margin-top:12px">Kanal bisa berubah. Ambil alamat dan nomor dari situs resmi lembaganya, bukan dari pesan yang kamu terima.</p></div>'
+   +'<div class="card"><h3 style="font-size:24px;margin-bottom:12px">Sudah terlanjur?</h3><div class="copyfield" id="cl2">'+esc(CHECKLIST)+'</div><div class="row" style="margin-top:12px"><button class="btn" data-act="copy">Salin daftar</button></div></div></div>'
+   +'<div class="card" style="margin-top:18px"><h3 style="font-size:24px;margin-bottom:8px">Privasi dan data</h3><p style="color:var(--mute);margin-bottom:14px">Progres (XP, kasus selesai, hari beruntun) hanya tersimpan di browser perangkat ini. Tidak ada nama, nomor, atau data rekening yang diminta. Semua nama merek, nomor, dan tautan dalam simulasi adalah rekaan. Aplikasi ini sarana belajar, bukan nasihat hukum atau keuangan.</p>'
+   +'<div class="row"><button class="btn ghost" data-act="theme">Ganti tema: '+(S.theme==="dark"?"gelap":S.theme==="light"?"terang":"ikuti sistem")+"</button>"
+   +(confirmReset?'<button class="btn sig" data-act="reset2">Ya, hapus semua progres</button><button class="btn ghost" data-act="reset0">Batal</button>':'<button class="btn ghost" data-act="reset1">Hapus progres</button>')+"</div></div></div>";
+}
+
+/* ---------- CONTROL ---------- */
+function applyTheme(){var r=document.documentElement;if(S.theme==="dark"||S.theme==="light")r.setAttribute("data-theme",S.theme);else r.removeAttribute("data-theme")}
+function go(r,noscroll){route=r;render();if(!noscroll)window.scrollTo(0,0)}
+function render(){
+  nav();
+  var v={home:vHome,peta:vPeta,play:vPlay,kartu:vKartu,periksa:vPeriksa,kilat:vKilat,info:vInfo}[route]||vHome;
+  var keepY=window.scrollY;
+  $("#app").innerHTML=v();
+  if(route==="play"||route==="kilat"||route==="home")window.scrollTo(0,keepY);
+}
+function startCase(id){
+  var c=CASES.filter(function(x){return x.id===id})[0];if(!c)return;
+  P={c:c,step:0,emo:null,tapped:{},conf:50,res:null};route="play";render();window.scrollTo(0,0);
+}
+function finishDecision(i){
+  var c=P.c,o=c.opts[i];
+  var emoXp=P.emo===c.emo?5:0;
+  var flagXp=0;c.flags.forEach(function(f){if(P.tapped[f.id]&&!f.ok)flagXp+=8});
+  if(c.truth==="legit"){flagXp=0;}
+  var exp=c.truth==="scam"?100:0,err=Math.abs(P.conf-exp),mult=c.truth==="legit"?2:1;
+  var calXp=(err<=25?15:err<=50?6:0)*mult;
+  var decXp=VXP[o.v],total=emoXp+flagXp+calXp+decXp;
+  var prev=S.cases[c.id],pxp=prev?prev.xp:0,pst=prev?prev.stars:0;
+  S.cases[c.id]={xp:Math.max(pxp,total),stars:Math.max(pst,VST[o.v])};
+  touch();save();
+  P.res={o:o,emoXp:emoXp,flagXp:flagXp,calXp:calXp,decXp:decXp,total:total,delta:S.cases[c.id].xp-pxp};
+  P.step=3;render();
+  setTimeout(function(){P.step=4;render();window.scrollTo(0,0)},1500);
+}
+
+document.addEventListener("click",function(e){
+  var t=e.target.closest("[data-r],[data-act],[data-case],[data-filter],[data-emo],[data-f],[data-opt],[data-k],[data-sample]");
+  if(!t)return;
+  if(t.dataset.r){confirmReset=false;if(t.dataset.r!=="kilat")K=K&&K.i>=K.q.length?null:K;go(t.dataset.r);return}
+  if(t.dataset.filter){filter=t.dataset.filter;render();return}
+  if(t.dataset.case){startCase(t.dataset.case);return}
+  if(t.dataset.f&&route==="home"){var fid=t.dataset.f;demo["d:"+fid]=1;render();return}
+  if(t.dataset.f&&P){P.tapped[t.dataset.f]=1;touch();render();return}
+  if(t.dataset.emo&&P&&!P.emo){P.emo=t.dataset.emo;render();return}
+  if(t.dataset.opt!==undefined&&P&&!P.res){finishDecision(+t.dataset.opt);return}
+  if(t.dataset.k!==undefined&&K&&K.ans===null){
+    var it=KILAT[K.q[K.i]];K.ans=+t.dataset.k;var good=(K.ans===1)===!!it.s;
+    if(good){K.ok++;K.combo++;if(!S.kilat[K.q[K.i]]){S.kilat[K.q[K.i]]=1;K.gain+=8;touch();save()}}else K.combo=0;
+    render();return}
+  if(t.dataset.sample!==undefined){chk=t.dataset.sample==="x"?"":SAMPLES[+t.dataset.sample];render();return}
+  var a=t.dataset.act;
+  if(a==="next"){var nc=CASES.filter(function(c){return!S.cases[c.id]})[0]||CASES[0];startCase(nc.id)}
+  else if(a==="s1"){P.step=1;render()}
+  else if(a==="s2"){P.step=2;render()}
+  else if(a==="s3"){P.step=3;render()}
+  else if(a==="nextcase"){var i=CASES.indexOf(P.c),nx=CASES.slice(i+1).concat(CASES.slice(0,i)).filter(function(c){return!S.cases[c.id]})[0]||CASES[(i+1)%CASES.length];startCase(nx.id)}
+  else if(a==="knext"){K.i++;K.ans=null;render()}
+  else if(a==="kagain"){K=newK();render()}
+  else if(a==="theme"){S.theme=S.theme===""?"light":S.theme==="light"?"dark":"";save();applyTheme();render()}
+  else if(a==="reset1"){confirmReset=true;render()}
+  else if(a==="reset0"){confirmReset=false;render()}
+  else if(a==="reset2"){S={cases:{},kilat:{},streak:0,last:"",theme:S.theme};save();confirmReset=false;demo={};toast("Progres dihapus");render()}
+  else if(a==="copy"){var done=function(){toast("Daftar tersalin")};
+    try{navigator.clipboard.writeText(CHECKLIST).then(done,function(){selectField()})}catch(er){selectField()}}
+});
+function selectField(){var el=$("#cl2");if(!el)return;var r=document.createRange();r.selectNodeContents(el);var s=window.getSelection();s.removeAllRanges();s.addRange(r);toast("Pilih lalu salin manual")}
+document.addEventListener("input",function(e){
+  if(e.target.id==="slider"&&P){P.conf=+e.target.value;$("#cv").textContent=P.conf+"%";$("#cl").textContent=confLabel(P.conf)}
+  if(e.target.id==="chk"){chk=e.target.value;$("#chkRes").innerHTML=result(chk)}
+});
+
+applyTheme();
+var h=(location.hash||"").replace("#","");
+if(["peta","kartu","periksa","kilat","info"].indexOf(h)>=0)route=h;
+render();
+</script>
+
+</body>
+</html>
